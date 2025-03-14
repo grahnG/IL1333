@@ -19,19 +19,23 @@ from keras.models import load_model
 import time
 
 ################################################
-data_folder = "../traces/puf0_avg100/"
-model_folder = "../models/puf0/"
-modelName = 'puf0'
+#data_folder = "../traces/puf0_avg100/"
+#model_folder = "../models/puf0/"
+#modelName = 'puf0'
 
 #data_folder = "../traces/puf12_avg100/"
 #model_folder = "../models/puf12/"
 #modelName = 'puf12'
 
-input_size = 150
+data_folder = "../traces/puf0_avg0_blocks_of_1000/"
+model_folder = "../models/puf0/"
+modelName = 'puf0_avg0_blocks_of_1000'
+
+input_size = 25
 #################################################
 
-def create_model(classes=2, input_size=150):
-	input_shape = (input_size,)
+def create_model(classes=2, input_size=25):
+	input_shape = (25,)
 
 	# Create model.
 	model = Sequential()
@@ -66,7 +70,7 @@ def load_traces():
 	# Choose here which files to use
 	traces = np.load(data_folder+'trace.npy')
 	labels = np.load(data_folder+'label.npy')
-	for i in range(1,9):  
+	for i in range(1,1):  
 		tempTrace = np.load(data_folder+'trace'+str(i)+'.npy')
 		tempLabel = np.load(data_folder+'label'+str(i)+'.npy')
 		traces = np.append(traces,tempTrace,axis=0)
@@ -76,11 +80,24 @@ def load_traces():
 	print('labels shape:', labels.shape)
 
 	# Scale (standardize) traces
+	# Select the best leakage points based on t-test results
+	important_trace_points = [0, 1, 2, 3, 4, 4, 5, 6, 7, 8, 9, 10, 85, 86, 87, 88, 89, 90, 91, 92, 127, 128, 129, 130, 131]
+	traces = traces[:, important_trace_points]	
+
 	delimitedTraces = np.zeros(traces.shape)
 	for x_index in range(traces.shape[0]):
 		delimitedTraces[x_index,:] = -1+(traces[x_index,:]-np.min(traces[x_index,:]))*2/(np.max(traces[x_index,:])-np.min(traces[x_index,:]))
 
-	return (delimitedTraces, labels)
+	# **Sequential split (last 10% as test set)**
+	num_samples = len(delimitedTraces)
+	split_index = int(0.9 * num_samples)
+
+	X_train, X_test = delimitedTraces[:split_index], delimitedTraces[split_index:]
+	Y_train, Y_test = labels[:split_index], labels[split_index:]
+
+	print(f"Dataset split: {split_index} training samples, {num_samples - split_index} testing samples")
+
+	return X_train, X_test, Y_train, Y_test
 	###############################################################
 
 def train_model(X_profiling, Y_profiling, model, save_file_name, epochs=50, batch_size=64):
@@ -110,14 +127,14 @@ def train_model(X_profiling, Y_profiling, model, save_file_name, epochs=50, batc
 	
 	# Uncomment this to see how accuracy changes per epoch
 	# # summarize history for accuracy
-	# plt.plot(history.history['acc'])
-	# plt.plot(history.history['val_acc'])
-	# plt.title('model accuracy')
-	# plt.ylabel('accuracy')
-	# plt.xlabel('epoch')
-	# plt.legend(['train', 'test'], loc='upper left')
-	# # plt.savefig('../history/puf0/' + modelName + '.pdf')
-	# plt.show()
+	plt.plot(history.history['acc'])
+	plt.plot(history.history['val_acc'])
+	plt.title('model accuracy')
+	plt.ylabel('accuracy')
+	plt.xlabel('epoch')
+	plt.legend(['train', 'test'], loc='upper left')
+	plt.savefig('../history/puf0/' + modelName + '.pdf')
+	plt.show()
 	
 	return history
 	  
@@ -125,13 +142,16 @@ def train_model(X_profiling, Y_profiling, model, save_file_name, epochs=50, batc
 start = time.time()
 
 # Load the training traces
-(traces, labels) = load_traces()
+X_train, X_test, Y_train, Y_test = load_traces()
 
 ### MLP training
 
 mlp = create_model(input_size=input_size)
 
-train_model(traces, labels, mlp, model_folder+modelName, epochs=100, batch_size=128)
+train_model(X_train, Y_train, mlp, model_folder+modelName, epochs=100, batch_size=128)
 
 end = time.time()
 print("The total running time was: ",((end-start)/60), " minutes.") 
+test_loss, test_acc = mlp.evaluate(X_test, to_categorical(Y_test, num_classes=2))
+print("Test Accuracy:", test_acc)
+

@@ -4,8 +4,8 @@ from scipy import stats
 
 #################################################
 #data_folder = "../traces/puf0_avg0_blocks_of_1000/"
-#data_folder = "../traces/puf0_avg100/"
-data_folder = "../traces/puf12_avg100/"
+data_folder = "../traces/puf0_avg100/"
+#data_folder = "../traces/puf12_avg100/"
  
 size = 150	
 			   			   	 
@@ -14,7 +14,7 @@ size = 150
 traces = np.load(data_folder+'trace.npy')
 labels = np.load(data_folder+'label.npy')
 
-for i in range(1,5):  
+for i in range(1,10):  
 	tempTrace = np.load(data_folder+'trace'+str(i)+'.npy')
 	tempLabel = np.load(data_folder+'label'+str(i)+'.npy')
 

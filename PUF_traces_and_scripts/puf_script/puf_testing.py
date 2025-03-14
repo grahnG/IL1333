@@ -34,6 +34,9 @@ modelName = 'puf0'
 #model_folder = "../models/puf12/"
 #modelName = 'puf12'											#
 
+#data_folder = "../traces/puf0_avg100/"
+#model_folder = "../models/puf0/"
+#modelName = 'puf0_avg0_blocks_of_1000'
 ################################################### 
 
 def load_sca_model(model_folder,model_file):
@@ -80,6 +83,9 @@ def load_traces():
 	print('traces shape:', traces.shape)
 	print('labels shape:', labels.shape)
 
+	important_trace_points = [0, 1, 2, 3, 4, 4, 5, 6, 7, 8, 9, 10, 85, 86, 87, 88, 89, 90, 91, 92, 127, 128, 129, 130, 131]
+	traces = traces[:, important_trace_points]
+
 	# Scale (standardize) traces
 	delimitedTraces = np.zeros(traces.shape)
 	for x_index in range(traces.shape[0]):
@@ -94,6 +100,7 @@ def check_model(model_folder,model,count):
 
 	# Load model
 	model_load = load_sca_model(model_folder,model)
+
 
 	# coorect if 0
 	num_attack = int(labels.shape[0])
